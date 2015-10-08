@@ -1,0 +1,201 @@
+Cmd:     AUTH USERNAME PASSWORD
+Type:    login
+Action:  Authenticate client at fwdaemon side.
+Params:  USERNAME - username defined in /etc/desktopfw/config 
+	 PASSWORD - password defined in /etc/desktopfw/config
+Info:    No commands allowed until correct authentication occured.
+         To avoid authentication (for testing purposes) you can define in fwcomm.c
+       
+         #if !defined (DEFAUTH) 
+	  #define DEFAULT_AUTHENTICATED FALSE
+         #endif
+
+	 to
+       
+         #if !defined (DEFAUTH) 
+	  #define DEFAULT_AUTHENTICATED TRUE
+         #endif
+
+----------------------------------------------------------------------------
+Cmd:     LIST
+Type:    read
+Action:  Retrieve command list.
+
+----------------------------------------------------------------------------
+Cmd:     DEV
+Type:    read
+Action:  Retrive command list for DEV
+---     
+ SubCmd:  DEV LIST
+ Type:    read
+ Action:  Retrives interfaces list in a form:
+ Returns: [INDEX] INTERFACE nlifidx=NUMBER
+  where:  INDEX     - integer
+          INTERFACE - string
+	  nlifidx=NUMBER - index in nlif table
+---
+ SubCmd:  DEV STATS INTERFACE
+ Type:    read
+ Action:  Get interface statistics
+ Returns: DevIndex: [INDEX]
+          Interface: [INTERFACE]
+	  counter: [VALUE]
+          counter = (rbytes,rpackets,rerrs,rdrop,rfifo,rframe,rcompressed,rmulticast)
+                    (tbytes,tpackets,terrs,tdrop,tfifo,tframe,tcompressed,tmulticast)
+
+----------------------------------------------------------------------------
+Cmd:     VERSION
+Type:    read
+Action:  Get protocol version, currently 0.1 
+
+----------------------------------------------------------------------------
+Cmd:     APPS
+Type:    read
+Action:  Retrieve command list for APPS
+---
+ SubCmd:  APPS CHECK
+ Type:    read
+ Action:  Get applications status
+ Returns: 'APPS CHANGED' or 'APPS NOT CHANGED'
+ Info:    Application status means which executable has been modified (what means
+          mtime/size/checksum changed).
+	  For example after ssh upgrade you should observe mtime/size/checksum
+          will change. 
+	  To find out which applications has been changed use APPS STATUS.
+---
+ SubCmd:  APPS STATUS
+ Type:    read
+ Action:  Return all applications status.
+ Returns: [PATH]: [STATUS]
+          PATH - full path, for ex /usr/bin/ssh. Currently you can't use binary file
+	  which contain space inside (maybe I'll change this limit later)
+
+          STATUS:
+          a) NOT CHANGED
+          b) CHANGED: MTIME=BOOLEAN SIZE=BOOLEAN CHKSUM=BOOLEAN
+         
+ Info:    User GUI should be notified which applications changed (and what changes
+          occured)
+---
+ SubCmd:  APPS ADDCOMMITED PATH
+ Type:    write
+ Action:  Add a PATH to registered applications.
+ Returns: ERROR: APPLICATION ['PATH'] NOT ADDED and NOT COMMITED!
+          OK: APPLICATION ['PATH'] ADDED and COMMITED
+ Info:    Commit means, that mtime, size i checksum will be calculated for PATH
+          and stored. You can use this function if application is already registered          
+ Modify:  /etc/desktopfw/apps
+---
+ SubCmd:  APPS COMMIT PATH
+ Type:    write
+ Action:  Commituje existing PATH (for ex after upgrade)
+ Returns: ERROR: APPLICATION ['PATH'] NOT COMMITED!         
+	  OK: APPLICATION ['PATH'] COMMITED
+ Modify:  /etc/desktopfw/apps
+---
+ SubCmd:  APPS REMOVE PATH
+ Type:    write
+ Action:  Remove a PATH from registered applications.
+ Returns: ERROR: APPLICATION ['PATH'] NOT REMOVED!
+	  OK: APPLICATION ['PATH'] REMOVED
+ Modify:  /etc/desktopfw/apps
+
+
+----------------------------------------------------------------------------
+Cmd:     RULES
+Type:    read
+Action:  Retrieve command list for RULES
+---
+ SubCmd:  RULES LIST
+ Type:    read
+ Action:  Retrieve current rules
+ Returns: 
+	  [RULES currtime=epoch]
+	  [%04d] SESS iface dir proto srchost srcport dsthost dstport action application timestamp touched
+	  ...
+	  [%04d] PERM iface dir proto srchost srcport dsthost dstport action application timestamp touched
+	  ...
+   where: SESS        - means this is session rule. Rule is not stored to /etc/desktopfw/rules
+	  PERM        - means this is permanent rule. Rule is saved in /etc/desktopfw/rules
+	  iface       - interface, eth0 for ex
+	  dir         - outgoing or incoming 
+	  proto       - protocol (currently works for tcp)
+	  srchost     - src host(s) ip in cidr format, for ex 10.20.0.0/24
+	  srcport     - src port number, if == 0, any source port matches to it
+	  dsthost     - dst host(s) ip in cidr format, for ex 10.20.0.0/24
+	  dstport     - dst port number, if == 0, any destination port matches to it
+	  action      - currently ACCEPT, DROP or ASK
+	  application - binary file which is source/target of packet 
+	  timestamp   - last rule activity timestamp
+	  touched     - counter how many times rules matched
+---
+ SubCmd:  RULES ADD SESS iface dir proto srchost srcport dsthost dstport action application
+ Type:    write
+ Action:  Add rule to the session rules
+ Returns: information does a rule wass added or not
+ Params:  like in RULES LIST (see above)
+ Info:    Session rule is added at the beginning of all rules. 
+	  Rule is lost if for ex fwdaemon will be restarted.
+---
+ SubCmd:  RULES ADD PERM iface dir proto srchost srcport dsthost dstport action application
+ Type:    write
+ Action:  Add rule to the permanent rules
+ Returns: information does a rule wass added or not
+ Params:  like in RULES LIST (see above)
+ Info:    Permanent rule is added at the end of all rules. 
+ Modify:  /etc/desktopfw/rules
+---
+ SubCmd:  RULES REMOVE SESS rule_number
+ Type:    write
+ Action:  Remove a rule from session rules
+---
+ SubCmd:  RULES REMOVE PERM rule_number
+ Type:    write
+ Action:  Remove a rule from permanent rules
+ Modify:  /etc/desktopfw/rules
+
+----------------------------------------------------------------------------
+Cmd:     QUERY
+Type:    read
+Action:  Retrieve command list for QUERY
+---
+ SubCmd:  QUERY LIST
+ Type:    read
+ Action:  Retrieve sessions which require interaction.
+ Info:    If no action from user side is performed query will drop a packet
+          after timeout (60 sec now)
+          current timeout - fwquery.h: #define FWQUERY_TIMEOUT 60
+---
+ SubCmd:  QUERY ADD PERM qnumber [ANYWHERE]
+ Type:    write
+ Action:  Add a permanent rule based on query.
+ Params:  - qnumber - query number which is source information for rule creation
+	  - ANYWHERE (optional) - means an application can connect to anywhere
+            (srchost is set to 0/0, srcport to 0, dsthost to 0/0 and dstport to 0)
+ Modify:  /etc/desktopfw/rules
+---
+ SubCmd:  QUERY ADD SESS qnumber [ANYWHERE]
+ Type:    write
+ Action:  Add a session rule based on query.
+ Params:  - qnumber - query number which is source information for rule creation
+	  - ANYWHERE (optional) - means an application can connect to anywhere
+            (srchost is set to 0/0, srcport to 0, dsthost to 0/0 and dstport to 0)
+
+
+----------------------------------------------------------------------------
+Cmd:     CONFIG
+Type:    read
+Action:  Retrieve command list for CONFIG
+---
+ SubCmd:  CONFIG LIST
+ Type:    read
+ Action:  Retrieve configuration variables
+---
+ SubCmd:  CONFIG SET variable value
+ Type:    write
+ Action:  Set a configuration variable
+ Params:  - variable 
+	  - value
+ Modify:  /etc/desktopfw/config
+ Info:    If you set host or port fwdaemon restart is required.
+

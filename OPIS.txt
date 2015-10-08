@@ -1,0 +1,19 @@
+fwconfig.[ch]	
+  - plik konfiguracyjny /etc/desktopfw/config
+  - zawiera podstawow± konfiguracje programu tj:
+    *) username, password, port, domy¶lne akcje in i out
+
+------------------------------------------------------------------------------
+fwapps.[ch]
+  - plik konfiguracyjny w /etc/desktopfw/apps
+  - zawiera informacje o aplikacjach i ich stanach dostêpu
+  - sprawdzanie aplikacji odbywa siê nie czê¶ciej ni¿ FWAPPS_CHECKTIME_INTERVAL
+
+Z punktu widzenia aplikacji nale¿y:
+ 1. wczytaæ - fwapps_read()
+ 2. wykonywaæ cykliczne testy za pomoc± - fwapps_check()
+    - je¶li funkcja zwraca FWAPPS_NOT_CHANGED nic siê nie zmieni³o
+    - je¶li funkcja zwraca FWAPPS_CHANGED nale¿y sprawdziæ jakie
+      aplikacje siê zmieni³y (mtime, size lub chksum)
+      a) zaakceptowanie aplikacji fwapps_commit_path(path)
+      b) usuniêcie aplikacji fwapps_remove_path(path)

@@ -1,0 +1,15 @@
+# iface direction       proto   host                    port    action  user    application                     checksum
+[rules]
+eth0	outgoing	udp	0/0               	53	ACCEPT	FWPRE	*                                *                                
+eth0	incoming	udp	0/0               	53	ASK	FWPRE	*                                *                                
+eth0	incoming	tcp	0/0               	80	ACCEPT	FWPRE	*                                *                                
+eth0	incoming	tcp	0/0               	23	REJECT	FWPRE	*                                *                                
+eth0	incoming	tcp	0/0               	22	ASK	root	/bin/telnet                      3da78ce3
+eth0	incoming	tcp	0/0               	21	ASK	root	/bin/telnet                      3da78ce3
+eth0	outgoing	tcp	192.168.168.168/32	23	ACCEPT	wegorz	/bin/telnet                      3da78ce3
+eth0	outgoing	tcp	0/0               	22	ACCEPT	wegorz	/usr/bin/ssh                     f7b96417
+eth0	outgoing	icmp	0/0               	0	ACCEPT	wegorz	/bin/ping                        f7b96417
+eth0	outgoing	tcp	10.0.0.0/16       	23	ACCEPT	gabi	/bin/telnet                      3da78ce3
+eth0	outgoing	tcp	0/0               	22	ACCEPT	gabi	/bin/telnet                      3da78ce3
+eth1	outgoing	tcp	0/0               	21	ACCEPT	gabi	/bin/telnet                      3da78ce3
+eth0	outgoing	tcp	0/0               	23	ACCEPT	FWPOST	/bin/telnet                      3da78ce3

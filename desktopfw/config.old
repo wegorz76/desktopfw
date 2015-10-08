@@ -1,0 +1,12 @@
+# This file is generated automaticaly.
+# DON'T MODIFY IT BY HAND UNLESS YOU KNOW WHAT YOU'RE DOING!
+
+# fwconfig settings
+# key           	=       value
+[settings]
+username		=	fwadmin
+password		=	fwpass
+host			=	
+port			=	32123
+default_input_action	=	ASK
+default_output_action	=	ACCEPT
